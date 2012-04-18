@@ -156,7 +156,13 @@ class UnicodeWriter:
         self.encoder = codecs.getincrementalencoder(encoding)()
 
     def writerow(self, row):
-        self.writer.writerow([s.encode("utf-8") for s in row])
+        temp = []
+        for s in row:
+            if (type(s) == types.IntType):
+                temp.append(string(s))
+            else:
+                temp.append(s)
+        self.writer.writerow([s.encode("utf-8") for s in temp])
         # Fetch UTF-8 output from the queue ...
         data = self.queue.getvalue()
         data = data.decode("utf-8")
@@ -212,7 +218,7 @@ def process_ipas(path,columns,sort,output,ignore):
     if (columns):
         order = columns
     for app in apps:
-        data = [str(app.get(key,'')) for key in order]
+        data = [app.get(key,'') for key in order]
         writer.writerow(data)
     if (not output):
         outfile.seek(0)
