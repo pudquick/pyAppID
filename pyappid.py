@@ -140,6 +140,8 @@ def get_app_info(app):
         d_app[i] = info_d.get(info_columns[i], None)
     for i in itmd_columns.keys():
         d_app[i] = itmd_d.get(itmd_columns[i], None)
+        if (i == 'i'):
+            d_app[i] = int(d_app[i])
     return tuple(sorted(d_app.items(), key=lambda x: x[0]))
 
 class UnicodeWriter:
