@@ -159,7 +159,7 @@ class UnicodeWriter:
         temp = []
         for s in row:
             if (type(s) == types.IntType):
-                temp.append(string(s))
+                temp.append(str(s))
             else:
                 temp.append(s)
         self.writer.writerow([s.encode("utf-8") for s in temp])
