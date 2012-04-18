@@ -26,7 +26,7 @@ Example usage:
 
 from __future__ import with_statement
 
-import sys, getopt, glob, os.path, zipfile, re, warnings, csv, types, tempfile
+import sys, getopt, glob, os.path, zipfile, re, warnings, csv, types, tempfile, codecs, cStringIO
 
 try:
     # On a Mac? Use native Foundation library wrappers
@@ -142,6 +142,35 @@ def get_app_info(app):
         d_app[i] = itmd_d.get(itmd_columns[i], None)
     return tuple(sorted(d_app.items(), key=lambda x: x[0]))
 
+class UnicodeWriter:
+    """
+    A CSV writer which will write rows to CSV file "f",
+    which is encoded in the given encoding.
+    """
+
+    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
+        # Redirect output to a queue
+        self.queue = cStringIO.StringIO()
+        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
+        self.stream = f
+        self.encoder = codecs.getincrementalencoder(encoding)()
+
+    def writerow(self, row):
+        self.writer.writerow([s.encode("utf-8") for s in row])
+        # Fetch UTF-8 output from the queue ...
+        data = self.queue.getvalue()
+        data = data.decode("utf-8")
+        # ... and reencode it into the target encoding
+        data = self.encoder.encode(data)
+        # write to the target stream
+        self.stream.write(data)
+        # empty queue
+        self.queue.truncate(0)
+
+    def writerows(self, rows):
+        for row in rows:
+            self.writerow(row)
+
 def process_ipas(path,columns,sort,output,ignore):
     if (not (os.path.isdir(path))):
         print "'%s' does not appear to be a valid path" % path
@@ -176,12 +205,14 @@ def process_ipas(path,columns,sort,output,ignore):
     else:
         outfile = tempfile.TemporaryFile()
     csv.register_dialect('exceltab', delimiter='\t')
-    writer = csv.writer(outfile, dialect='exceltab')
+    # Fix for Unicode characters
+    # writer = csv.writer(outfile, dialect='exceltab')
+    writer = UnicodeWriter(outfile, dialect='exceltab')
     order = ['a','s','i']
     if (columns):
         order = columns
     for app in apps:
-        data = [app.get(key,'') for key in order]
+        data = [str(app.get(key,'')) for key in order]
         writer.writerow(data)
     if (not output):
         outfile.seek(0)
