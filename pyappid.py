@@ -218,6 +218,8 @@ def process_ipas(path,columns,sort,output,ignore):
     if (columns):
         order = columns
     for app in apps:
+        # For debugging
+        print app['p']
         data = [app.get(key,'') for key in order]
         writer.writerow(data)
     if (not output):
