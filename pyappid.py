@@ -42,12 +42,12 @@ def usage():
 def main():
     available_columns = ['a', 's', 'i', 'p']
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hc:s:o:i", ["help","columns=","sort=","output=","ignore"])
+        opts, args = getopt.getopt(sys.argv[1:], "hvc:s:o:i", ["help", "verbose", "columns=","sort=","output=","ignore"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
     columns,sort,output = None,None,None
-    ignore = False
+    ignore,verbose = False, False
     path = ''
     for o, a in opts:
         if o in ("-h", "--help"):
@@ -74,13 +74,15 @@ def main():
             output = a
         elif o in ("-i", "--ignore"):
             ignore = True
+        elif o in ("-v", "--verbose"):
+            verbose = True
         else:
             assert False, "Unhandled option. Contact the developer."
     if (not len(args)):
-        assert False, "PATH is required"
+        print "Error: PATH is required"
         usage()
     path = args[0]
-    return process_ipas(path,columns,sort,output,ignore)
+    return process_ipas(path,columns,sort,output,ignore,verbose)
 
 def get_app_info(app):
     try:
@@ -179,7 +181,7 @@ class UnicodeWriter:
         for row in rows:
             self.writerow(row)
 
-def process_ipas(path,columns,sort,output,ignore):
+def process_ipas(path,columns,sort,output,ignore,verbose):
     if (not (os.path.isdir(path))):
         print "'%s' does not appear to be a valid path" % path
         sys.exit()
@@ -189,6 +191,8 @@ def process_ipas(path,columns,sort,output,ignore):
         sys.exit()
     app_infos = set()
     for app in apps:
+        if verbose:
+            print "DEBUG: Processing:", app
         info = get_app_info(app)
         if (info):
             app_infos.add(info)
@@ -220,7 +224,11 @@ def process_ipas(path,columns,sort,output,ignore):
     if (columns):
         order = columns
     for app in apps:
+        if verbose:
+            print "DEBUG: Raw data:", app
         data = [app.get(key,'') for key in order]
+        if verbose:
+            print "DEBUG: Sorted data:", data
         writer.writerow(data)
     if (not output):
         outfile.seek(0)
