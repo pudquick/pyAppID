@@ -21,6 +21,7 @@ App Store attributes available:
    i - iTunes App Store ID
    p - path to the .ipa file being parsed
    b - name of the .app bundle in the .ipa file
+   v - presence/lack of the 'voip' UIBackgroundModes value
 
 Example usage:
    Display current apps: pyappid "~/Music/iTunes/Mobile Applications"
