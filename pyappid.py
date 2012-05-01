@@ -13,12 +13,14 @@ Options:
   -s, --sort ATTRIBUTE       Sort by specified attribute
   -o, --output FILE          Save output to specified file instead of stdout
   -i, --ignore               Ignore problematic .ipa files instead of stopping
+  -v, --verbose              Enable verbose debug logging
 
 App Store attributes available:
    a - iTunes & App Store Display Name
    s - iOS Screen Display Name (when installed on device)
    i - iTunes App Store ID
    p - path to the .ipa file being parsed
+   b - name of the .app bundle in the .ipa file
 
 Example usage:
    Display current apps: pyappid "~/Music/iTunes/Mobile Applications"
@@ -40,7 +42,7 @@ def usage():
     sys.exit()
 
 def main():
-    available_columns = ['a', 's', 'i', 'p']
+    available_columns = ['a', 's', 'i', 'p', 'b']
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hvc:s:o:i", ["help", "verbose", "columns=","sort=","output=","ignore"])
     except getopt.GetoptError, err:
@@ -106,10 +108,14 @@ def get_app_info(app):
     # print itmd
     # Now for the hard one - finding the Info.plist
     possible_infos = []
+    bundle_name = ''
     try:
         # Filter it down to info.plist files first
+        valid_bundle = re.compile(r"((./)?payload/[^/]+.app)", re.I)
         for f in files:
             lf = f.lower()
+            if (valid_bundle.search(f)):
+                bundle_name = valid_bundle.search(f).group(0)
             if (lf.endswith(".app/info.plist") and (lf.startswith("payload/") or lf.startswith("./payload/"))):
                 if (not (f in possible_infos)):
                     possible_infos.append(f)
@@ -123,10 +129,16 @@ def get_app_info(app):
             return False
         infop = zapp.read(real_infos[0])
     except:
-        print "Error: Payload/*.app/Info.plist not found"        
+        print "Error: Payload/*.app/Info.plist not found"
+    # Find the .app bundle name, for apps that don't have a CFBundleDisplayName
+
     # print infop
     d_app = dict()
     d_app['p'] = os.path.basename(app)
+    try:
+        d_app['b'] = bundle_name.split("/")[-1].rsplit(".")[0]
+    except:
+        d_app['b'] = bundle_name
     try:
         with warnings.catch_warnings():
             # This is to wrap out an annoying warning in the pblistlib
@@ -140,6 +152,9 @@ def get_app_info(app):
     itmd_columns = {'a': 'itemName', 'i': 'itemId'}
     for i in info_columns.keys():
         d_app[i] = info_d.get(info_columns[i], None)
+        # Fix for lack of CFBundleDisplayName
+        if ((i == 's') and (d_app[i] == None)):
+            d_app[i] = d_app['b']
     for i in itmd_columns.keys():
         d_app[i] = itmd_d.get(itmd_columns[i], None)
         if (i == 'i'):
