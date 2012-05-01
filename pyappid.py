@@ -3,9 +3,9 @@
 
 List information about the iTunes iOS App Store .ipa files located in PATH.
 Output is a tab separated column format, with default outputs:
- * iTunes & App Store Display Name
- * iOS Screen Display Name
- * iTunes App Store ID
+ * iTunes & App Store Display Name (a)
+ * iOS Screen Display Name (s)
+ * iTunes App Store ID (i)
 
 Options:
   -h, --help                 Display this message
@@ -42,7 +42,7 @@ def usage():
     sys.exit()
 
 def main():
-    available_columns = ['a', 's', 'i', 'p', 'b']
+    available_columns = ['a', 's', 'i', 'p', 'b', 'v']
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hvc:s:o:i", ["help", "verbose", "columns=","sort=","output=","ignore"])
     except getopt.GetoptError, err:
@@ -148,10 +148,18 @@ def get_app_info(app):
     except:
         print "Error: One or more malformed .plist files in .ipa"
         return False
-    info_columns = {'s': 'CFBundleDisplayName'}
+    info_columns = {'s': 'CFBundleDisplayName', 'v': 'UIBackgroundModes'}
     itmd_columns = {'a': 'itemName', 'i': 'itemId'}
     for i in info_columns.keys():
-        d_app[i] = info_d.get(info_columns[i], None)
+        if (i == 'v'):
+            b_modes = list(info_d.get(info_columns[i], []))
+            b_modes = [x.lower() for x in b_modes]
+            if ('voip' in b_modes):
+                d_app[i] = "VOIP-YES"
+            else:
+                d_app[i] = "VOIP-NO"
+        else:
+            d_app[i] = info_d.get(info_columns[i], None)
         # Fix for lack of CFBundleDisplayName
         if ((i == 's') and (d_app[i] == None)):
             d_app[i] = d_app['b']
