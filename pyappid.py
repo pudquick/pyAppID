@@ -22,6 +22,7 @@ App Store attributes available:
    p - path to the .ipa file being parsed
    b - name of the .app bundle in the .ipa file
    v - presence/lack of the 'voip' UIBackgroundModes value
+   u - URL handlers defined
 
 Example usage:
    Display current apps: pyappid "~/Music/iTunes/Mobile Applications"
@@ -43,7 +44,7 @@ def usage():
     sys.exit()
 
 def main():
-    available_columns = ['a', 's', 'i', 'p', 'b', 'v']
+    available_columns = ['a', 's', 'i', 'p', 'b', 'v', 'u']
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hvc:s:o:i", ["help", "verbose", "columns=","sort=","output=","ignore"])
     except getopt.GetoptError, err:
@@ -149,7 +150,7 @@ def get_app_info(app):
     except:
         print "Error: One or more malformed .plist files in .ipa"
         return False
-    info_columns = {'s': 'CFBundleDisplayName', 'v': 'UIBackgroundModes'}
+    info_columns = {'s': 'CFBundleDisplayName', 'v': 'UIBackgroundModes', 'u': 'CFBundleURLTypes'}
     itmd_columns = {'a': 'itemName', 'i': 'itemId'}
     for i in info_columns.keys():
         if (i == 'v'):
@@ -164,6 +165,20 @@ def get_app_info(app):
         # Fix for lack of CFBundleDisplayName
         if ((i == 's') and (d_app[i] == None)):
             d_app[i] = d_app['b']
+        if (i == 'u'):
+            url_list = info_d.get(info_columns[i], None)
+            if url_list == None:
+                d_app['u'] = 'NONE'
+            else:
+                url_schemes = []
+                for dict_block in url_list:
+                    for scheme in dict_block.get('CFBundleURLSchemes', []):
+                        url_schemes.append(scheme)
+                if url_schemes:
+                    d_app['u'] = ';'.join(url_schemes)
+                else:
+                    # Fix for defined key, but no values
+                    d_app['u'] = 'NONE'
     for i in itmd_columns.keys():
         d_app[i] = itmd_d.get(itmd_columns[i], None)
         if (i == 'i'):
